@@ -20,6 +20,16 @@ async fn query_params_handler(query: web::Query<QueryParams>) -> impl Responder 
 
 #[actix_web::main] // or #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    let mut test_hashmap = HashMap::new();
+    test_hashmap.insert("key1", "value1");
+    test_hashmap.insert("key2", "value2");
+
+    println!("Test HashMap: {:?}", test_hashmap);
+    println!(
+        "Test HashMap encoded: {:?}",
+        serde_urlencoded::to_string(&test_hashmap).unwrap()
+    );
+
     HttpServer::new(|| {
         App::new()
             .service(greet)
