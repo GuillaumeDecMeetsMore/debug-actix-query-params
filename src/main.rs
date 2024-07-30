@@ -1,11 +1,18 @@
 use std::collections::HashMap;
 
-use actix_web::{get, web, App, HttpServer, Responder};
+use axum::{
+    extract::{Path, Query},
+    routing::get,
+    Router,
+};
 use serde::Deserialize;
 
-#[get("/hello/{name}")]
-async fn greet(name: web::Path<String>) -> impl Responder {
+async fn greet(Path(name): Path<String>) -> String {
     format!("Hello {}!", name)
+}
+
+async fn query_params_handler(query: Query<QueryParams>) -> String {
+    format!("Query Params: {:?}", query)
 }
 
 #[derive(Debug, Deserialize)]
@@ -14,28 +21,16 @@ struct QueryParams {
     pub array_param: Vec<String>,
 }
 
-async fn query_params_handler(query: web::Query<QueryParams>) -> impl Responder {
-    format!("Query Params: {:?}", query)
-}
+#[tokio::main]
+async fn main() {
+    // build our application with a route
+    let app = Router::new()
+        .route("/hello/:name", get(greet))
+        .route("/params", get(query_params_handler));
 
-#[actix_web::main] // or #[tokio::main]
-async fn main() -> std::io::Result<()> {
-    let mut test_hashmap = HashMap::new();
-    test_hashmap.insert("key1", "value1");
-    test_hashmap.insert("key2", "value2");
-
-    println!("Test HashMap: {:?}", test_hashmap);
-    println!(
-        "Test HashMap encoded: {:?}",
-        serde_urlencoded::to_string(&test_hashmap).unwrap()
-    );
-
-    HttpServer::new(|| {
-        App::new()
-            .service(greet)
-            .service(web::resource("/params").route(web::get().to(query_params_handler)))
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+    // run our app with hyper, listening globally on port 3000
+    let listener = tokio::net::TcpListener::bind("localhost:8080")
+        .await
+        .unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
